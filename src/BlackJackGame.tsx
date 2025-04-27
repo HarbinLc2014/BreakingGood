@@ -104,6 +104,45 @@ export default function BlackJackGame() {
     return deck.splice(randomIndex, 1)[0];
   };
 
+  const renderButtons = () => {
+    if(gameStatus === 'playing'){
+        return (
+            <View style={{ marginTop: 100, marginBottom: 50, flexDirection: 'row', width: 300, justifyContent: 'space-between', alignItems: 'center' }}>
+                          <GradientButton
+            title="Hit"
+            onPress={() => {
+              setCards([]);
+              setTimeout(() => {
+                handleDeal();
+              },10);
+            }}
+          />
+                    <GradientButton
+            title="Stand"
+            onPress={() => {
+              setCards([]);
+              setTimeout(() => {
+                handleDeal();
+              }, 10);
+            }}
+          />
+            </View>
+        )
+    }
+    return (
+        gameStatus !== 'dealing'&&
+          <GradientButton
+            title="Start"
+            onPress={() => {
+              setCards([]);
+              setTimeout(() => {
+                handleDeal();
+              }, 10);
+            }}
+          />
+    )
+  }
+
   const handleDeal = () => {
     setGameStatus("dealing");
     const newDeck = [...deck];
@@ -240,17 +279,7 @@ export default function BlackJackGame() {
             )
           )}
         </View>
-        { gameStatus !== 'dealing'&&
-          <GradientButton
-            title="Deal"
-            onPress={() => {
-              setCards([]);
-              setTimeout(() => {
-                handleDeal();
-              }, 500);
-            }}
-          />
-        }
+        { renderButtons()}
         {gameStatus === "playing" && font && (
         //   <Canvas style={{ marginTop: 150, height: 50, width: 200 }}>
         //     <SkiaText

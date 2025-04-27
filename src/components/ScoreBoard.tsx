@@ -19,7 +19,7 @@ export function ScoreBoard({ playerPts, font }: { playerPts: number; font: any }
   }));
 
   return (
-    <Animated.View style={[{ marginTop: 150, height: 50, width: 200, alignItems: "center", justifyContent: "center" }, animatedStyle]}>
+    <Animated.View style={[{ height: 50, width: 200, alignItems: "center", justifyContent: "center" }, animatedStyle]}>
       <Canvas style={{ height: 50, width: 200 }}>
         <SkiaText
           text={`Pts: ${playerPts}`}

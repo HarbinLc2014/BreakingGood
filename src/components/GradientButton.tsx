@@ -8,7 +8,7 @@ export function GradientButton({
   title: string;
   onPress: () => void;
 }) {
-  const width = 100;
+  const width = 130;
   const height = 50;
 
   return (
