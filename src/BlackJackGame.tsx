@@ -40,6 +40,8 @@ const fontStyle = {
   fontWeight: "bold" as const,
 } as const;
 const font = matchFont(fontStyle);
+const PLAYER_INITIAL_X = SCREEN_WIDTH / 2 - 50 - 24 - 12;
+const PLAYER_INITIAL_Y = SCREEN_HEIGHT / 2 - 150;
 
 export default function BlackJackGame() {
   const [cards, setCards] = useState<any>([]);
@@ -47,9 +49,9 @@ export default function BlackJackGame() {
   const [dealerHands, setDealerHands] = useState<any>([]);
   const [playerPts, setPlayerPts] = useState<number>(0);
   const [dealerPts, setDealerPts] = useState<number>(0);
-
-  const [gameStatus, setGameStatus] = useState<any>("pending");
-
+  const [dealerPtsVisible, setDealerPtsVisible] = useState<boolean>(false);
+  const [gameStatus, setGameStatus] = useState<any>("waiting");
+  const [final, setFinal] = useState<boolean>(false)
   const num = [
     "ace",
     "2",
@@ -105,51 +107,50 @@ export default function BlackJackGame() {
   };
 
   const renderButtons = () => {
-    if(gameStatus === 'playing'){
-        return (
-            <View style={{ marginTop: 100, marginBottom: 50, flexDirection: 'row', width: 300, justifyContent: 'space-between', alignItems: 'center' }}>
-                          <GradientButton
-            title="Hit"
-            onPress={() => {
-              setCards([]);
-              setTimeout(() => {
-                handleDeal();
-              },10);
-            }}
-          />
-                    <GradientButton
+    if (gameStatus === "playing") {
+      return (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <GradientButton title="Hit" onPress={()=>hitPlayer(playerPts)} />
+          <GradientButton
             title="Stand"
-            onPress={() => {
-              setCards([]);
-              setTimeout(() => {
-                handleDeal();
-              }, 10);
+            onPress={()=>{
+                setDealerPtsVisible(true)
+                hitDealer(dealerPts)
             }}
           />
-            </View>
-        )
+        </View>
+      );
     }
     return (
-        gameStatus !== 'dealing'&&
-          <GradientButton
-            title="Start"
-            onPress={() => {
-              setCards([]);
-              setTimeout(() => {
-                handleDeal();
-              }, 10);
-            }}
-          />
-    )
-  }
+      gameStatus !== "dealing" &&
+      gameStatus !== "initialDealing" && (
+        <GradientButton
+          title="Start"
+          onPress={() => {
+            setCards([]);
+            setTimeout(() => {
+              handleDeal();
+            }, 10);
+          }}
+        />
+      )
+    );
+  };
 
   const handleDeal = () => {
-    setGameStatus("dealing");
+    setDealerPtsVisible(false);
+    setGameStatus("initialDealing");
     const newDeck = [...deck];
     const playerCard1 = drawCard(newDeck);
     const dealerCard1 = drawCard(newDeck);
     const playerCard2 = drawCard(newDeck);
-    const dealerCard2 = drawCard(newDeck);
     setPlayerHands([playerCard1, playerCard2]);
     setDealerHands([dealerCard1]);
     setPlayerPts(playerCard1.point + playerCard2.point);
@@ -161,40 +162,135 @@ export default function BlackJackGame() {
         key: 1,
         image: playerCard1.image,
         backImage: playerCard1.back,
-        toX: SCREEN_WIDTH / 2 - 50 - 24 - 12,
-        toY: SCREEN_HEIGHT / 2 - 150,
+        toX: PLAYER_INITIAL_X,
+        toY: PLAYER_INITIAL_Y,
         delay: 1000,
       },
       {
         key: 2,
         image: dealerCard1.image,
         backImage: dealerCard1.back,
-        toX: SCREEN_WIDTH / 2 - 50 - 24 - 12,
-        toY: -SCREEN_HEIGHT / 2 + 150,
+        toX: PLAYER_INITIAL_X,
+        toY: -PLAYER_INITIAL_Y,
         delay: 2000,
       },
       {
         key: 3,
         image: playerCard2.image,
         backImage: playerCard2.back,
-        toX: SCREEN_WIDTH / 2 - 50 - 12,
-        toY: SCREEN_HEIGHT / 2 - 150,
+        toX: PLAYER_INITIAL_X + 24,
+        toY: PLAYER_INITIAL_Y,
         delay: 3000,
       },
-      //   {
-      //     key: 4,
-      //     image: dealerCard2.image,
-      //     backImage: dealerCard2.back,
-      //     toX: SCREEN_WIDTH / 2 - 50 - 12,
-      //     toY: -SCREEN_HEIGHT / 2 + 150,
-      //     delay: 4000,
-      //   },
     ];
     setCards(newCards);
     setTimeout(() => {
       setGameStatus("playing");
     }, 4500);
   };
+
+  const hitPlayer = (pts: number) => {
+    setGameStatus("dealing");
+    const newDeck = [...deck];
+    const newPlayerCard = drawCard(newDeck);
+    setPlayerHands((prev: any) => [...prev, newPlayerCard]);
+    setDeck(newDeck);
+    const newCard = {
+      key: playerHands.length + 2,
+      image: newPlayerCard.image,
+      backImage: newPlayerCard.back,
+      toX: PLAYER_INITIAL_X + 24 * playerHands.length,
+      toY: PLAYER_INITIAL_Y,
+      delay: 1,
+    };
+    setCards((prev: any) => [...prev, newCard]);
+    const currentPts = pts + newPlayerCard.point
+    if (currentPts < 21) {
+      setTimeout(() => {
+        setPlayerPts(currentPts);
+      }, 1500);
+      setTimeout(() => {
+        setGameStatus("playing");
+      }, 1800);
+    } else {
+      setTimeout(() => {
+        setPlayerPts(currentPts);
+      }, 1500);
+      setTimeout(() => {
+        setGameStatus("pending");
+      }, 1800);
+    }
+  };
+
+//   const hitDealer = () => {
+//     setGameStatus('dealing');
+//     const newDeck = [...deck];
+//     const newDealerCard = drawCard(newDeck);
+//     setDealerHands([...dealerHands, newDealerCard]);
+//     const newPts = dealerPts + newDealerCard.point; 
+//     setDeck(newDeck);
+//     const newCard = {
+//       key: playerHands.length + dealerHands.length + 1,
+//       image: newDealerCard.image,
+//       backImage: newDealerCard.back,
+//       toX: PLAYER_INITIAL_X + 24 * dealerHands.length,
+//       toY: -PLAYER_INITIAL_Y,
+//       delay: 1,
+//     };
+//     setCards([...cards, newCard]);
+//     if (newPts < 17) {
+//         setDealerPts(newPts)
+//         // setTimeout(()=>{
+//         //     setDealerPts(newPts)
+//         // }, 300)
+//         // setTimeout(()=>{
+//         //     hitDealer()
+//         // },500)
+//     } else{
+//         // setFinal(true)
+//         setTimeout(()=>{
+//             setDealerPts(newPts)
+//             // setDealerPts(dealerPts + newDealerCard.point)
+//             setGameStatus("pending")
+//         }, 1500)
+
+//     }
+//   };
+const hitDealer = (pts: number, length = 1) => {
+    setGameStatus('dealing');
+  
+    const newDeck = [...deck];
+    const newDealerCard = drawCard(newDeck);
+    console.log('pts', pts, newDealerCard.point, pts + newDealerCard.point)
+    const newPts = pts + newDealerCard.point; // ❗局部追踪新的总点数
+  
+    setDealerHands((prev: any) => [...prev, newDealerCard]);
+    setDeck(newDeck);
+    const newCard = {
+      key: playerHands.length + length + 1,
+      image: newDealerCard.image,
+      backImage: newDealerCard.back,
+      toX: PLAYER_INITIAL_X + 24 * length,
+      toY: -PLAYER_INITIAL_Y,
+      delay: 1,
+    };
+    setCards((prev: any) => [...prev, newCard]);
+  
+    setTimeout(()=>{
+        setDealerPts(newPts); // 正确更新庄家点数
+    },800)
+  
+    if (newPts < 17) {
+      setTimeout(() => {
+        hitDealer(newPts, length + 1); // ❗递归传进去新的总点数！
+      }, 1300);
+    } else {
+      setTimeout(() => {
+        setGameStatus("pending");
+      }, 1500);
+    }
+  };
+  
   return (
     <View style={{ flex: 1 }}>
       {/* Skia Background Layer */}
@@ -220,27 +316,6 @@ export default function BlackJackGame() {
           />
         </Rect>
       </Canvas>
-      {/* <Canvas style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-  <Rect x={0} y={0} width={SCREEN_WIDTH} height={SCREEN_HEIGHT}>
-    <RadialGradient
-      c={vec(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)}
-      r={Math.max(SCREEN_WIDTH, SCREEN_HEIGHT) / 1.2}
-      colors={[
-        "rgb(0, 60, 40)",       // 深赌桌绿
-        "rgb(0, 80, 50)",       // 暗翡翠绿
-        "rgb(10, 100, 60)",     // 赌桌主色
-        "rgb(30, 120, 80)",     // 带黄调的绿
-        "rgb(50, 140, 90)",     // 浅苔藓绿
-        "rgb(30, 120, 80)",     // 回落到黄绿色
-        "rgb(10, 100, 60)",     // 回到主色
-        "rgb(0, 80, 50)",       // 暗翡翠
-        "rgb(0, 60, 40)"        // 闭合循环
-      ]}
-      // 可选添加渐变位置控制
-      positions={[0, 0.25, 0.4, 0.6, 0.8, 0.85, 0.9, 0.95, 1]}
-    />
-  </Rect>
-</Canvas> */}
       <View
         style={{
           flex: 1,
@@ -279,32 +354,22 @@ export default function BlackJackGame() {
             )
           )}
         </View>
-        { renderButtons()}
-        {gameStatus === "playing" && font && (
-        //   <Canvas style={{ marginTop: 150, height: 50, width: 200 }}>
-        //     <SkiaText
-        //       text={`Pts: ${playerPts}`}
-        //       x={30} // 大概居中
-        //       y={35}
-        //       font={font}
-        //     >
-        //       <Paint>
-        //         <LinearGradient
-        //           start={vec(20, 0)}
-        //           end={vec(160, 0)} // 铺满整个宽度
-        //           colors={[
-        //             "#000",
-        //             "#FFD700",
-        //             "#FFC107",
-        //             "#FFB300",
-        //             "#FFD700",
-        //             "#fff",
-        //           ]}
-        //         />
-        //       </Paint>
-        //     </SkiaText>
-        //   </Canvas>
-        <ScoreBoard font={font} playerPts={playerPts}></ScoreBoard>
+        {dealerPtsVisible && font? (
+          <ScoreBoard font={font} playerPts={dealerPts} type="Dealer" animation={false}></ScoreBoard>
+        ): <View style={{ width: 1, height: 50 }}></View>}
+        <View
+          style={{
+            marginVertical: 75,
+            height: 50,
+            width: 300,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {renderButtons()}
+        </View>
+        {gameStatus !== "initialDealing" && gameStatus !=='waiting' && font && (
+          <ScoreBoard font={font} playerPts={playerPts} type="You" animation={true}></ScoreBoard>
         )}
       </View>
     </View>

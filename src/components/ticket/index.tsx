@@ -79,7 +79,7 @@ export const Ticket: React.FC<TicketProps> = React.memo(
       translateX.value = withDelay(
         delay+200,
         withTiming(toX, {
-          duration: 1000,
+          duration: 500,
           easing: Easing.out(Easing.ease),
         })
       );
@@ -87,13 +87,13 @@ export const Ticket: React.FC<TicketProps> = React.memo(
       translateY.value = withDelay(
         delay+200,
         withTiming(toY, {
-          duration: 1000,
+          duration: 500,
           easing: Easing.out(Easing.ease),
         })
       );
     
       translateN.value = withDelay(
-        delay+1200, // wait for move to finish first
+        delay+700, // wait for move to finish first
         withTiming(translateN.value + 180, {
           duration: 500,
         })
