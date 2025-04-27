@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { View, Button, Image, Dimensions, TouchableOpacity, StyleSheet, Text } from "react-native";
+import {
+  View,
+  Button,
+  Image,
+  Dimensions,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+  Platform,
+} from "react-native";
 import AnimatedCard from "./AnimatedCard";
 import { cardImagesMap } from "./constants/cardImageMap";
 import { Ticket } from "./components/ticket";
@@ -12,14 +21,35 @@ import {
   Rect,
   SweepGradient,
   vec,
+  Text as SkiaText,
+  LinearGradient,
+  matchFont,
+  Fill,
+  Paint,
 } from "@shopify/react-native-skia";
 import { GradientButton } from "./components/GradientButton";
+import { ScoreBoard } from "./components/ScoreBoard";
 const backImage = require("../assets/cards/card_back.png");
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+const fontFamily = Platform.select({ ios: "Helvetica", default: "serif" });
+const fontStyle = {
+  fontFamily,
+  fontSize: 42,
+  fontStyle: "italic" as const,
+  fontWeight: "bold" as const,
+} as const;
+const font = matchFont(fontStyle);
 
 export default function BlackJackGame() {
   const [cards, setCards] = useState<any>([]);
+  const [playerHands, setPlayerHands] = useState<any>([]);
+  const [dealerHands, setDealerHands] = useState<any>([]);
+  const [playerPts, setPlayerPts] = useState<number>(0);
+  const [dealerPts, setDealerPts] = useState<number>(0);
+
+  const [gameStatus, setGameStatus] = useState<any>("pending");
+
   const num = [
     "ace",
     "2",
@@ -36,16 +66,31 @@ export default function BlackJackGame() {
     "king",
   ];
   const colors = ["diamonds", "hearts", "spades", "clubs"];
-  const points = { "ace": 1, jack: 10, queen: 10, king: 10, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10}
+  const points = {
+    ace: 1,
+    jack: 10,
+    queen: 10,
+    king: 10,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+  };
+
   const createDeck = () => {
     const deck = [];
     for (let rank of num) {
       for (let suit of colors) {
-        deck.push({ 
-          rank, 
-          suit, 
-          image: cardImagesMap[`${rank}_of_${suit}`], 
-          point: points[rank as keyof typeof points] 
+        deck.push({
+          rank,
+          suit,
+          image: cardImagesMap[`${rank}_of_${suit}`],
+          point: points[rank as keyof typeof points],
         });
       }
     }
@@ -60,12 +105,16 @@ export default function BlackJackGame() {
   };
 
   const handleDeal = () => {
+    setGameStatus("dealing");
     const newDeck = [...deck];
     const playerCard1 = drawCard(newDeck);
     const dealerCard1 = drawCard(newDeck);
     const playerCard2 = drawCard(newDeck);
     const dealerCard2 = drawCard(newDeck);
-
+    setPlayerHands([playerCard1, playerCard2]);
+    setDealerHands([dealerCard1]);
+    setPlayerPts(playerCard1.point + playerCard2.point);
+    setDealerPts(dealerCard1.point);
     setDeck(newDeck);
     // 更新状态
     const newCards = [
@@ -93,16 +142,19 @@ export default function BlackJackGame() {
         toY: SCREEN_HEIGHT / 2 - 150,
         delay: 3000,
       },
-    //   {
-    //     key: 4,
-    //     image: dealerCard2.image,
-    //     backImage: dealerCard2.back,
-    //     toX: SCREEN_WIDTH / 2 - 50 - 12,
-    //     toY: -SCREEN_HEIGHT / 2 + 150,
-    //     delay: 4000,
-    //   },
+      //   {
+      //     key: 4,
+      //     image: dealerCard2.image,
+      //     backImage: dealerCard2.back,
+      //     toX: SCREEN_WIDTH / 2 - 50 - 12,
+      //     toY: -SCREEN_HEIGHT / 2 + 150,
+      //     delay: 4000,
+      //   },
     ];
     setCards(newCards);
+    setTimeout(() => {
+      setGameStatus("playing");
+    }, 4500);
   };
   return (
     <View style={{ flex: 1 }}>
@@ -188,35 +240,64 @@ export default function BlackJackGame() {
             )
           )}
         </View>
-        <GradientButton title="Deal" onPress={() => {
-            setCards([]);
-            setTimeout(() => {
-              handleDeal();
-            }, 500);
-          }} />
-       
+        { gameStatus !== 'dealing'&&
+          <GradientButton
+            title="Deal"
+            onPress={() => {
+              setCards([]);
+              setTimeout(() => {
+                handleDeal();
+              }, 500);
+            }}
+          />
+        }
+        {gameStatus === "playing" && font && (
+        //   <Canvas style={{ marginTop: 150, height: 50, width: 200 }}>
+        //     <SkiaText
+        //       text={`Pts: ${playerPts}`}
+        //       x={30} // 大概居中
+        //       y={35}
+        //       font={font}
+        //     >
+        //       <Paint>
+        //         <LinearGradient
+        //           start={vec(20, 0)}
+        //           end={vec(160, 0)} // 铺满整个宽度
+        //           colors={[
+        //             "#000",
+        //             "#FFD700",
+        //             "#FFC107",
+        //             "#FFB300",
+        //             "#FFD700",
+        //             "#fff",
+        //           ]}
+        //         />
+        //       </Paint>
+        //     </SkiaText>
+        //   </Canvas>
+        <ScoreBoard font={font} playerPts={playerPts}></ScoreBoard>
+        )}
       </View>
     </View>
   );
 }
 
-  
-  const styles = StyleSheet.create({
-    button: {
+const styles = StyleSheet.create({
+  button: {
     //   backgroundColor: 'linear-gradient(45deg, #FFD700, #C0B283)', // gold tone (you'll simulate it below)
-      borderWidth: 2,
-      borderColor: '#FFD700', // royal gold
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-      borderRadius: 12,
-      marginVertical: 10,
+    borderWidth: 2,
+    borderColor: "#FFD700", // royal gold
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginVertical: 10,
 
-      backgroundColor: '#0b3d2e', // elegant dark green background (rich casino vibe)
-    },
-    buttonText: {
-      color: '#FFD700', // golden text
-      fontSize: 18,
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-  });
+    backgroundColor: "#0b3d2e", // elegant dark green background (rich casino vibe)
+  },
+  buttonText: {
+    color: "#FFD700", // golden text
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+});
