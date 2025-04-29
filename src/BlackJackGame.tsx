@@ -51,7 +51,7 @@ export default function BlackJackGame() {
   const [dealerPts, setDealerPts] = useState<number>(0);
   const [dealerPtsVisible, setDealerPtsVisible] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<any>("waiting");
-  const [final, setFinal] = useState<boolean>(false)
+
   const num = [
     "ace",
     "2",
@@ -68,7 +68,7 @@ export default function BlackJackGame() {
     "king",
   ];
   const colors = ["diamonds", "hearts", "spades", "clubs"];
-  const points = {
+  const pointsMap = {
     ace: 1,
     jack: 10,
     queen: 10,
@@ -84,6 +84,24 @@ export default function BlackJackGame() {
     "10": 10,
   };
 
+  const calculateTotalPoints = (hand: any[]) => {
+    let total = 0;
+    let aceCount = 0;
+  
+    for (const card of hand) {
+      total += card.point;
+      if (card.point === 1) aceCount += 1;
+    }
+  
+    // 尽量将 Ace 转换为 11 分，只要不爆
+    while (aceCount > 0 && total + 10 <= 21) {
+      total += 10;
+      aceCount--;
+    }
+  
+    return total;
+  };
+
   const createDeck = () => {
     const deck = [];
     for (let rank of num) {
@@ -92,7 +110,7 @@ export default function BlackJackGame() {
           rank,
           suit,
           image: cardImagesMap[`${rank}_of_${suit}`],
-          point: points[rank as keyof typeof points],
+          point: pointsMap[rank as keyof typeof pointsMap],
         });
       }
     }
@@ -104,6 +122,7 @@ export default function BlackJackGame() {
   const drawCard = (deck: any[]) => {
     const randomIndex = Math.floor(Math.random() * deck.length);
     return deck.splice(randomIndex, 1)[0];
+    // return deck.shift()
   };
 
   const renderButtons = () => {
@@ -122,7 +141,7 @@ export default function BlackJackGame() {
             title="Stand"
             onPress={()=>{
                 setDealerPtsVisible(true)
-                hitDealer(dealerPts)
+                hitDealer()
             }}
           />
         </View>
@@ -151,9 +170,10 @@ export default function BlackJackGame() {
     const playerCard1 = drawCard(newDeck);
     const dealerCard1 = drawCard(newDeck);
     const playerCard2 = drawCard(newDeck);
+    const newPlayerHands = [playerCard1, playerCard2];
     setPlayerHands([playerCard1, playerCard2]);
     setDealerHands([dealerCard1]);
-    setPlayerPts(playerCard1.point + playerCard2.point);
+    setPlayerPts(calculateTotalPoints(newPlayerHands));
     setDealerPts(dealerCard1.point);
     setDeck(newDeck);
     // 更新状态
@@ -184,15 +204,33 @@ export default function BlackJackGame() {
       },
     ];
     setCards(newCards);
+    const playerIsBlackJack = false
+    const playerCanDouble = false
+    const playerCanSplit = false
+    const dealerHasAce = false
     setTimeout(() => {
+        if(playerIsBlackJack){
+            //
+        }
+        if(playerCanDouble){
+            //
+        }
+        if(playerCanSplit){
+            //
+        }
+        if(dealerHasAce){
+            //
+        }
       setGameStatus("playing");
     }, 4500);
   };
 
   const hitPlayer = (pts: number) => {
     setGameStatus("dealing");
+    const hands = playerHands
     const newDeck = [...deck];
     const newPlayerCard = drawCard(newDeck);
+    const currentPts = calculateTotalPoints([...hands, newPlayerCard])
     setPlayerHands((prev: any) => [...prev, newPlayerCard]);
     setDeck(newDeck);
     const newCard = {
@@ -204,7 +242,7 @@ export default function BlackJackGame() {
       delay: 1,
     };
     setCards((prev: any) => [...prev, newCard]);
-    const currentPts = pts + newPlayerCard.point
+
     if (currentPts < 21) {
       setTimeout(() => {
         setPlayerPts(currentPts);
@@ -256,15 +294,14 @@ export default function BlackJackGame() {
 
 //     }
 //   };
-const hitDealer = (pts: number, length = 1) => {
+const hitDealer = (length: any = 1, updateHands: any = null) => {
     setGameStatus('dealing');
-  
     const newDeck = [...deck];
     const newDealerCard = drawCard(newDeck);
-    console.log('pts', pts, newDealerCard.point, pts + newDealerCard.point)
-    const newPts = pts + newDealerCard.point; // ❗局部追踪新的总点数
+    const newHands = [...(updateHands || dealerHands), newDealerCard]; // 用它来算点数
+
+    setDealerHands(newHands); // 这个是异步的，不可依赖
   
-    setDealerHands((prev: any) => [...prev, newDealerCard]);
     setDeck(newDeck);
     const newCard = {
       key: playerHands.length + length + 1,
@@ -275,16 +312,18 @@ const hitDealer = (pts: number, length = 1) => {
       delay: 1,
     };
     setCards((prev: any) => [...prev, newCard]);
-  
+    const newPts = calculateTotalPoints(newHands); 
     setTimeout(()=>{
         setDealerPts(newPts); // 正确更新庄家点数
     },800)
-  
-    if (newPts < 17) {
+      // dealer doesnt stop at soft 17
+    if (newPts < 17 || (newPts === 17 && newHands.some(e=>e.point === 1))) {
+        console.log('KEEP HITTING', newHands, newPts)
       setTimeout(() => {
-        hitDealer(newPts, length + 1); // ❗递归传进去新的总点数！
+        hitDealer(length + 1, newHands); // ❗递归传进去新的总点数！
       }, 1300);
     } else {
+        console.log('STOPPED', newHands, newPts)
       setTimeout(() => {
         setGameStatus("pending");
       }, 1500);
