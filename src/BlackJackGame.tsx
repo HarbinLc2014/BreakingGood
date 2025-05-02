@@ -29,6 +29,7 @@ import {
 } from "@shopify/react-native-skia";
 import { GradientButton } from "./components/GradientButton";
 import { ScoreBoard } from "./components/ScoreBoard";
+import { RANKS, POINTSMAP, SUITS } from "./utils/const";
 const backImage = require("../assets/cards/card_back.png");
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -51,67 +52,42 @@ export default function BlackJackGame() {
   const [dealerPts, setDealerPts] = useState<number>(0);
   const [dealerPtsVisible, setDealerPtsVisible] = useState<boolean>(false);
   const [gameStatus, setGameStatus] = useState<any>("waiting");
+  const [deckNum, setDeckNum] = useState<number>(8);
 
-  const num = [
-    "ace",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "jack",
-    "queen",
-    "king",
-  ];
-  const colors = ["diamonds", "hearts", "spades", "clubs"];
-  const pointsMap = {
-    ace: 1,
-    jack: 10,
-    queen: 10,
-    king: 10,
-    "2": 2,
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "7": 7,
-    "8": 8,
-    "9": 9,
-    "10": 10,
-  };
+  const playerCanDouble = playerHands.length === 2 && !playerHands.some((e:any)=>e.point === 1) && (playerHands[0].point + playerHands[1].point === 9 || playerHands[0].point + playerHands[1].point === 10 || playerHands[0].point + playerHands[1].point === 11);
+  const playerCanSplit = playerHands.length === 2 && (playerHands[0].point === playerHands[1].point); // ** split ace logic
+  const dealerHasAce = false;
 
   const calculateTotalPoints = (hand: any[]) => {
     let total = 0;
     let aceCount = 0;
-  
+
     for (const card of hand) {
       total += card.point;
       if (card.point === 1) aceCount += 1;
     }
-  
+
     // 尽量将 Ace 转换为 11 分，只要不爆
     while (aceCount > 0 && total + 10 <= 21) {
       total += 10;
       aceCount--;
     }
-  
+
     return total;
   };
 
   const createDeck = () => {
     const deck = [];
-    for (let rank of num) {
-      for (let suit of colors) {
-        deck.push({
-          rank,
-          suit,
-          image: cardImagesMap[`${rank}_of_${suit}`],
-          point: pointsMap[rank as keyof typeof pointsMap],
-        });
+    for (let i = 0; i < deckNum; i++) {
+      for (let rank of RANKS) {
+        for (let suit of SUITS) {
+          deck.push({
+            rank,
+            suit,
+            image: cardImagesMap[`${rank}_of_${suit}`],
+            point: POINTSMAP[rank as keyof typeof POINTSMAP],
+          });
+        }
       }
     }
     return deck;
@@ -126,24 +102,51 @@ export default function BlackJackGame() {
   };
 
   const renderButtons = () => {
+    console.log('GAME STATUS', gameStatus)
     if (gameStatus === "playing") {
       return (
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          <GradientButton title="Hit" onPress={()=>hitPlayer(playerPts)} />
-          <GradientButton
-            title="Stand"
-            onPress={()=>{
-                setDealerPtsVisible(true)
-                hitDealer()
+        <View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "center",
+              width: "100%",
             }}
-          />
+          >
+            <GradientButton title="Hit" onPress={() => hitPlayer(playerPts)} />
+            <GradientButton
+              title="Stand"
+              onPress={() => {
+                setDealerPtsVisible(true);
+                hitDealer();
+              }}
+            />
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            {playerCanDouble && (
+              <GradientButton
+                title="Double"
+                onPress={() => hitPlayer(playerPts, true)}
+              />
+            )}
+            {playerCanSplit && (
+              <GradientButton
+                title="Split"
+                onPress={() => {
+                  setDealerPtsVisible(true);
+                  hitDealer();
+                }}
+              />
+            )}
+          </View>
         </View>
       );
     }
@@ -167,9 +170,11 @@ export default function BlackJackGame() {
     setDealerPtsVisible(false);
     setGameStatus("initialDealing");
     const newDeck = [...deck];
-    const playerCard1 = drawCard(newDeck);
+    // const playerCard1 = drawCard(newDeck);
+    const playerCard1 = newDeck[0];
+    const playerCard2 = newDeck[49];
     const dealerCard1 = drawCard(newDeck);
-    const playerCard2 = drawCard(newDeck);
+    // const playerCard2 = drawCard(newDeck);
     const newPlayerHands = [playerCard1, playerCard2];
     setPlayerHands([playerCard1, playerCard2]);
     setDealerHands([dealerCard1]);
@@ -204,33 +209,38 @@ export default function BlackJackGame() {
       },
     ];
     setCards(newCards);
-    const playerIsBlackJack = false
-    const playerCanDouble = false
-    const playerCanSplit = false
-    const dealerHasAce = false
+
     setTimeout(() => {
-        if(playerIsBlackJack){
-            //
-        }
-        if(playerCanDouble){
-            //
-        }
-        if(playerCanSplit){
-            //
-        }
-        if(dealerHasAce){
-            //
-        }
-      setGameStatus("playing");
+        // setState和setTimeout在一个context使用的时候 需要注意setState是异步更新，不能直接从state里面拿值放在timeout里执行
+      const playerIsBlackJack = newPlayerHands.length === 2 && newPlayerHands.some((e:any)=>e.point === 10) && newPlayerHands.some((e:any)=>e.point === 1);
+      if (playerIsBlackJack) {
+        finalizeGame({type : 'blackJack'})
+      }
+
+      else if (dealerHasAce) {
+        // show Insurance Modal
+      }
+      else{
+        console.log('????')
+        setGameStatus("playing");
+      }
     }, 4500);
   };
 
-  const hitPlayer = (pts: number) => {
+  const finalizeGame = (data: any) => {
+    if(data.type === 'blackJack'){
+        // if(dealerHasAce) {askEvenMoney()}
+        // if dealerHasTen hitDealer, if not blackJack then finalize it
+        setGameStatus("pending")
+    }
+  }
+
+  const hitPlayer = (pts: number, double: boolean = false) => {
     setGameStatus("dealing");
-    const hands = playerHands
+    const hands = playerHands;
     const newDeck = [...deck];
     const newPlayerCard = drawCard(newDeck);
-    const currentPts = calculateTotalPoints([...hands, newPlayerCard])
+    const currentPts = calculateTotalPoints([...hands, newPlayerCard]);
     setPlayerHands((prev: any) => [...prev, newPlayerCard]);
     setDeck(newDeck);
     const newCard = {
@@ -243,7 +253,7 @@ export default function BlackJackGame() {
     };
     setCards((prev: any) => [...prev, newCard]);
 
-    if (currentPts < 21) {
+    if (currentPts < 21 && !double) {
       setTimeout(() => {
         setPlayerPts(currentPts);
       }, 1500);
@@ -260,48 +270,14 @@ export default function BlackJackGame() {
     }
   };
 
-//   const hitDealer = () => {
-//     setGameStatus('dealing');
-//     const newDeck = [...deck];
-//     const newDealerCard = drawCard(newDeck);
-//     setDealerHands([...dealerHands, newDealerCard]);
-//     const newPts = dealerPts + newDealerCard.point; 
-//     setDeck(newDeck);
-//     const newCard = {
-//       key: playerHands.length + dealerHands.length + 1,
-//       image: newDealerCard.image,
-//       backImage: newDealerCard.back,
-//       toX: PLAYER_INITIAL_X + 24 * dealerHands.length,
-//       toY: -PLAYER_INITIAL_Y,
-//       delay: 1,
-//     };
-//     setCards([...cards, newCard]);
-//     if (newPts < 17) {
-//         setDealerPts(newPts)
-//         // setTimeout(()=>{
-//         //     setDealerPts(newPts)
-//         // }, 300)
-//         // setTimeout(()=>{
-//         //     hitDealer()
-//         // },500)
-//     } else{
-//         // setFinal(true)
-//         setTimeout(()=>{
-//             setDealerPts(newPts)
-//             // setDealerPts(dealerPts + newDealerCard.point)
-//             setGameStatus("pending")
-//         }, 1500)
-
-//     }
-//   };
-const hitDealer = (length: any = 1, updateHands: any = null) => {
-    setGameStatus('dealing');
+  const hitDealer = (length: any = 1, updateHands: any = null) => {
+    setGameStatus("dealing");
     const newDeck = [...deck];
     const newDealerCard = drawCard(newDeck);
     const newHands = [...(updateHands || dealerHands), newDealerCard]; // 用它来算点数
 
     setDealerHands(newHands); // 这个是异步的，不可依赖
-  
+
     setDeck(newDeck);
     const newCard = {
       key: playerHands.length + length + 1,
@@ -312,24 +288,24 @@ const hitDealer = (length: any = 1, updateHands: any = null) => {
       delay: 1,
     };
     setCards((prev: any) => [...prev, newCard]);
-    const newPts = calculateTotalPoints(newHands); 
-    setTimeout(()=>{
-        setDealerPts(newPts); // 正确更新庄家点数
-    },800)
-      // dealer doesnt stop at soft 17
-    if (newPts < 17 || (newPts === 17 && newHands.some(e=>e.point === 1))) {
-        console.log('KEEP HITTING', newHands, newPts)
+    const newPts = calculateTotalPoints(newHands);
+    setTimeout(() => {
+      setDealerPts(newPts); // 正确更新庄家点数
+    }, 800);
+    // dealer doesnt stop at soft 17
+    if (newPts < 17 || (newPts === 17 && newHands.some((e) => e.point === 1))) {
+      console.log("KEEP HITTING", newHands, newPts);
       setTimeout(() => {
         hitDealer(length + 1, newHands); // ❗递归传进去新的总点数！
       }, 1300);
     } else {
-        console.log('STOPPED', newHands, newPts)
+      console.log("STOPPED", newHands, newPts);
       setTimeout(() => {
         setGameStatus("pending");
       }, 1500);
     }
   };
-  
+
   return (
     <View style={{ flex: 1 }}>
       {/* Skia Background Layer */}
@@ -393,9 +369,16 @@ const hitDealer = (length: any = 1, updateHands: any = null) => {
             )
           )}
         </View>
-        {dealerPtsVisible && font? (
-          <ScoreBoard font={font} playerPts={dealerPts} type="Dealer" animation={false}></ScoreBoard>
-        ): <View style={{ width: 1, height: 50 }}></View>}
+        {dealerPtsVisible && font ? (
+          <ScoreBoard
+            font={font}
+            playerPts={dealerPts}
+            type="Dealer"
+            animation={false}
+          ></ScoreBoard>
+        ) : (
+          <View style={{ width: 1, height: 50 }}></View>
+        )}
         <View
           style={{
             marginVertical: 75,
@@ -407,9 +390,16 @@ const hitDealer = (length: any = 1, updateHands: any = null) => {
         >
           {renderButtons()}
         </View>
-        {gameStatus !== "initialDealing" && gameStatus !=='waiting' && font && (
-          <ScoreBoard font={font} playerPts={playerPts} type="You" animation={true}></ScoreBoard>
-        )}
+        {gameStatus !== "initialDealing" &&
+          gameStatus !== "waiting" &&
+          font && (
+            <ScoreBoard
+              font={font}
+              playerPts={playerPts}
+              type="You"
+              animation={true}
+            ></ScoreBoard>
+          )}
       </View>
     </View>
   );
