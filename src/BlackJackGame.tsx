@@ -30,6 +30,8 @@ import {
 import { GradientButton } from "./components/GradientButton";
 import { ScoreBoard } from "./components/ScoreBoard";
 import { RANKS, POINTSMAP, SUITS } from "./utils/const";
+import GameModal from "./components/GameModal";
+import { useInsurance } from "./hooks/useInsurance";
 const backImage = require("../assets/cards/card_back.png");
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -54,10 +56,29 @@ export default function BlackJackGame() {
   const [gameStatus, setGameStatus] = useState<any>("waiting");
   const [deckNum, setDeckNum] = useState<number>(8);
 
+  const [insuranceAccepted, setInsuranceAccepted] = useState(false);
+
   const playerCanDouble = playerHands.length === 2 && !playerHands.some((e:any)=>e.point === 1) && (playerHands[0].point + playerHands[1].point === 9 || playerHands[0].point + playerHands[1].point === 10 || playerHands[0].point + playerHands[1].point === 11);
   const playerCanSplit = playerHands.length === 2 && (playerHands[0].point === playerHands[1].point); // ** split ace logic
   const dealerHasAce = false;
 
+  
+  const {
+    showInsuranceModal,
+    handleAcceptInsurance,
+    handleDeclineInsurance,
+  } = useInsurance({
+    dealerHands,
+    onAcceptInsurance: () => {
+      console.log('Player bought insurance');
+      // 这里处理扣除一半筹码逻辑
+      setInsuranceAccepted(true);
+    },
+    onDeclineInsurance: () => {
+      console.log('Player declined insurance');
+      setInsuranceAccepted(false);
+    },
+  });
   const calculateTotalPoints = (hand: any[]) => {
     let total = 0;
     let aceCount = 0;
@@ -101,79 +122,15 @@ export default function BlackJackGame() {
     // return deck.shift()
   };
 
-  const renderButtons = () => {
-    console.log('GAME STATUS', gameStatus)
-    if (gameStatus === "playing") {
-      return (
-        <View>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-around",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
-            <GradientButton title="Hit" onPress={() => hitPlayer(playerPts)} />
-            <GradientButton
-              title="Stand"
-              onPress={() => {
-                setDealerPtsVisible(true);
-                hitDealer();
-              }}
-            />
-          </View>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-around",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
-            {playerCanDouble && (
-              <GradientButton
-                title="Double"
-                onPress={() => hitPlayer(playerPts, true)}
-              />
-            )}
-            {playerCanSplit && (
-              <GradientButton
-                title="Split"
-                onPress={() => {
-                  setDealerPtsVisible(true);
-                  hitDealer();
-                }}
-              />
-            )}
-          </View>
-        </View>
-      );
-    }
-    return (
-      gameStatus !== "dealing" &&
-      gameStatus !== "initialDealing" && (
-        <GradientButton
-          title="Start"
-          onPress={() => {
-            setCards([]);
-            setTimeout(() => {
-              handleDeal();
-            }, 10);
-          }}
-        />
-      )
-    );
-  };
-
   const handleDeal = () => {
     setDealerPtsVisible(false);
     setGameStatus("initialDealing");
     const newDeck = [...deck];
     // const playerCard1 = drawCard(newDeck);
-    const playerCard1 = newDeck[0];
+    const playerCard1 = newDeck[10];
     const playerCard2 = newDeck[49];
-    const dealerCard1 = drawCard(newDeck);
+    const dealerCard1 = newDeck[1];
+    // const dealerCard1 = drawCard(newDeck);
     // const playerCard2 = drawCard(newDeck);
     const newPlayerHands = [playerCard1, playerCard2];
     setPlayerHands([playerCard1, playerCard2]);
@@ -219,6 +176,7 @@ export default function BlackJackGame() {
 
       else if (dealerHasAce) {
         // show Insurance Modal
+
       }
       else{
         console.log('????')
@@ -306,9 +264,80 @@ export default function BlackJackGame() {
     }
   };
 
+  const renderButtons = () => {
+    console.log('GAME STATUS', gameStatus)
+    if (gameStatus === "playing") {
+      return (
+        <View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            <GradientButton title="Hit" onPress={() => hitPlayer(playerPts)} />
+            <GradientButton
+              title="Stand"
+              onPress={() => {
+                setDealerPtsVisible(true);
+                hitDealer();
+              }}
+            />
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            {playerCanDouble && (
+              <GradientButton
+                title="Double"
+                onPress={() => hitPlayer(playerPts, true)}
+              />
+            )}
+            {playerCanSplit && (
+              <GradientButton
+                title="Split"
+                onPress={() => {
+                  setDealerPtsVisible(true);
+                  hitDealer();
+                }}
+              />
+            )}
+          </View>
+        </View>
+      );
+    }
+    return (
+      gameStatus !== "dealing" &&
+      gameStatus !== "initialDealing" && (
+        <GradientButton
+          title="Start"
+          onPress={() => {
+            setCards([]);
+            setTimeout(() => {
+              handleDeal();
+            }, 10);
+          }}
+        />
+      )
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       {/* Skia Background Layer */}
+      <GameModal
+  visible={showInsuranceModal}
+  onAccept={handleAcceptInsurance}
+  onDecline={handleDeclineInsurance}
+  playerIsBlackJack={playerHands.length === 2 && playerHands.some((e:any)=>e.point === 10) && playerHands.some((e:any)=>e.point === 1)}
+/>
       <Canvas
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       >
