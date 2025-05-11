@@ -36,16 +36,18 @@ type TicketProps = {
   delay: number;
   width: number;
   height: number;
+  horizontalPlaced?: boolean;
   frontSide?: React.ReactNode;
   backSide?: React.ReactNode;
 }
 
 export const Ticket: React.FC<TicketProps> = React.memo(
-  ({ image, backImage, toX, toY, delay, width, height}) => {
+  ({ image, backImage, toX, toY, delay, width, height, horizontalPlaced = false}) => {
     // Shared values for tracking horizontal translation and gesture context
     const translateN = useSharedValue(0);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
+    const translateZ = useSharedValue(0);
     const contextX = useSharedValue(0);
 
     // Derived value for Y-axis rotation based on translation
@@ -73,17 +75,17 @@ export const Ticket: React.FC<TicketProps> = React.memo(
         zIndex: isFront.value ? 0 : 1,
       };
     });
-
+    const backX = horizontalPlaced ? 36: 0
   
     useEffect(() => {
       translateX.value = withDelay(
         delay+200,
-        withTiming(toX, {
+        withTiming(toX - backX, {
           duration: 500,
           easing: Easing.out(Easing.ease),
         })
       );
-    
+      
       translateY.value = withDelay(
         delay+200,
         withTiming(toY, {
@@ -92,6 +94,14 @@ export const Ticket: React.FC<TicketProps> = React.memo(
         })
       );
     
+      translateZ.value = withDelay(
+        delay+200,
+        withTiming(90, {
+          duration: 500,
+          easing: Easing.out(Easing.ease),
+        })
+      );
+
       translateN.value = withDelay(
         delay+700, // wait for move to finish first
         withTiming(translateN.value + 180, {
@@ -108,6 +118,7 @@ export const Ticket: React.FC<TicketProps> = React.memo(
           { translateY: translateY.value },
           { perspective: 1000 },
           { rotateY: `${rotateY.value}deg` },
+          horizontalPlaced ? { rotateZ: `${translateZ.value}deg` } : { rotateZ: '0deg' },
         ],
       };
     });

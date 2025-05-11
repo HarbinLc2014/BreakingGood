@@ -32,6 +32,7 @@ import { ScoreBoard } from "./components/ScoreBoard";
 import { RANKS, POINTSMAP, SUITS } from "./utils/const";
 import GameModal from "./components/GameModal";
 import { useInsurance } from "./hooks/useInsurance";
+import BlackJackGlowText from "./components/BlackJackGlowText";
 const backImage = require("../assets/cards/card_back.png");
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -58,27 +59,29 @@ export default function BlackJackGame() {
 
   const [insuranceAccepted, setInsuranceAccepted] = useState(false);
 
-  const playerCanDouble = playerHands.length === 2 && !playerHands.some((e:any)=>e.point === 1) && (playerHands[0].point + playerHands[1].point === 9 || playerHands[0].point + playerHands[1].point === 10 || playerHands[0].point + playerHands[1].point === 11);
-  const playerCanSplit = playerHands.length === 2 && (playerHands[0].point === playerHands[1].point); // ** split ace logic
+  const playerCanDouble =
+    playerHands.length === 2 &&
+    !playerHands.some((e: any) => e.point === 1) &&
+    (playerHands[0].point + playerHands[1].point === 9 ||
+      playerHands[0].point + playerHands[1].point === 10 ||
+      playerHands[0].point + playerHands[1].point === 11);
+  const playerCanSplit =
+    playerHands.length === 2 && playerHands[0].point === playerHands[1].point; // ** split ace logic
   const dealerHasAce = false;
 
-  
-  const {
-    showInsuranceModal,
-    handleAcceptInsurance,
-    handleDeclineInsurance,
-  } = useInsurance({
-    dealerHands,
-    onAcceptInsurance: () => {
-      console.log('Player bought insurance');
-      // 这里处理扣除一半筹码逻辑
-      setInsuranceAccepted(true);
-    },
-    onDeclineInsurance: () => {
-      console.log('Player declined insurance');
-      setInsuranceAccepted(false);
-    },
-  });
+  const { showInsuranceModal, handleAcceptInsurance, handleDeclineInsurance } =
+    useInsurance({
+      dealerHands,
+      onAcceptInsurance: () => {
+        console.log("Player bought insurance");
+        // 这里处理扣除一半筹码逻辑
+        setInsuranceAccepted(true);
+      },
+      onDeclineInsurance: () => {
+        console.log("Player declined insurance");
+        setInsuranceAccepted(false);
+      },
+    });
   const calculateTotalPoints = (hand: any[]) => {
     let total = 0;
     let aceCount = 0;
@@ -126,12 +129,13 @@ export default function BlackJackGame() {
     setDealerPtsVisible(false);
     setGameStatus("initialDealing");
     const newDeck = [...deck];
-    // const playerCard1 = drawCard(newDeck);
-    const playerCard1 = newDeck[10];
-    const playerCard2 = newDeck[49];
-    const dealerCard1 = newDeck[1];
-    // const dealerCard1 = drawCard(newDeck);
-    // const playerCard2 = drawCard(newDeck);
+    // const playerCard1 = newDeck[18];
+    // const playerCard2 = newDeck[19];
+    // const dealerCard1 = newDeck[1];
+
+    const dealerCard1 = drawCard(newDeck);
+    const playerCard1 = drawCard(newDeck);
+    const playerCard2 = drawCard(newDeck);
     const newPlayerHands = [playerCard1, playerCard2];
     setPlayerHands([playerCard1, playerCard2]);
     setDealerHands([dealerCard1]);
@@ -168,30 +172,29 @@ export default function BlackJackGame() {
     setCards(newCards);
 
     setTimeout(() => {
-        // setState和setTimeout在一个context使用的时候 需要注意setState是异步更新，不能直接从state里面拿值放在timeout里执行
-      const playerIsBlackJack = newPlayerHands.length === 2 && newPlayerHands.some((e:any)=>e.point === 10) && newPlayerHands.some((e:any)=>e.point === 1);
+      // setState和setTimeout在一个context使用的时候 需要注意setState是异步更新，不能直接从state里面拿值放在timeout里执行
+      const playerIsBlackJack =
+        newPlayerHands.length === 2 &&
+        newPlayerHands.some((e: any) => e.point === 10) &&
+        newPlayerHands.some((e: any) => e.point === 1);
       if (playerIsBlackJack) {
-        finalizeGame({type : 'blackJack'})
-      }
-
-      else if (dealerHasAce) {
+        finalizeGame({ type: "blackJack" });
+      } else if (dealerHasAce) {
         // show Insurance Modal
-
-      }
-      else{
-        console.log('????')
+      } else {
+        console.log("????");
         setGameStatus("playing");
       }
     }, 4500);
   };
 
   const finalizeGame = (data: any) => {
-    if(data.type === 'blackJack'){
-        // if(dealerHasAce) {askEvenMoney()}
-        // if dealerHasTen hitDealer, if not blackJack then finalize it
-        setGameStatus("pending")
+    if (data.type === "blackJack") {
+      // if(dealerHasAce) {askEvenMoney()}
+      // if dealerHasTen hitDealer, if not blackJack then finalize it
+      setGameStatus("pending");
     }
-  }
+  };
 
   const hitPlayer = (pts: number, double: boolean = false) => {
     setGameStatus("dealing");
@@ -208,6 +211,7 @@ export default function BlackJackGame() {
       toX: PLAYER_INITIAL_X + 24 * playerHands.length,
       toY: PLAYER_INITIAL_Y,
       delay: 1,
+      horizontalPlaced: double,
     };
     setCards((prev: any) => [...prev, newCard]);
 
@@ -217,6 +221,14 @@ export default function BlackJackGame() {
       }, 1500);
       setTimeout(() => {
         setGameStatus("playing");
+      }, 1800);
+    } else if (double) {
+      setTimeout(() => {
+        setPlayerPts(currentPts);
+      }, 1500);
+      setTimeout(() => {
+        setDealerPtsVisible(true);
+        hitDealer();
       }, 1800);
     } else {
       setTimeout(() => {
@@ -238,7 +250,7 @@ export default function BlackJackGame() {
 
     setDeck(newDeck);
     const newCard = {
-      key: playerHands.length + length + 1,
+      key: playerHands.length + length + 2,
       image: newDealerCard.image,
       backImage: newDealerCard.back,
       toX: PLAYER_INITIAL_X + 24 * length,
@@ -250,8 +262,9 @@ export default function BlackJackGame() {
     setTimeout(() => {
       setDealerPts(newPts); // 正确更新庄家点数
     }, 800);
-    // dealer doesnt stop at soft 17
-    if (newPts < 17 || (newPts === 17 && newHands.some((e) => e.point === 1))) {
+
+    const rawPoint = newHands.reduce((sum, card) => sum + card.point, 0);
+    if (newPts < 17 || (newPts === 17 && rawPoint === 7)) {
       console.log("KEEP HITTING", newHands, newPts);
       setTimeout(() => {
         hitDealer(length + 1, newHands); // ❗递归传进去新的总点数！
@@ -265,7 +278,7 @@ export default function BlackJackGame() {
   };
 
   const renderButtons = () => {
-    console.log('GAME STATUS', gameStatus)
+    console.log("GAME STATUS", gameStatus);
     if (gameStatus === "playing") {
       return (
         <View>
@@ -333,11 +346,15 @@ export default function BlackJackGame() {
     <View style={{ flex: 1 }}>
       {/* Skia Background Layer */}
       <GameModal
-  visible={showInsuranceModal}
-  onAccept={handleAcceptInsurance}
-  onDecline={handleDeclineInsurance}
-  playerIsBlackJack={playerHands.length === 2 && playerHands.some((e:any)=>e.point === 10) && playerHands.some((e:any)=>e.point === 1)}
-/>
+        visible={showInsuranceModal}
+        onAccept={handleAcceptInsurance}
+        onDecline={handleDeclineInsurance}
+        playerIsBlackJack={
+          playerHands.length === 2 &&
+          playerHands.some((e: any) => e.point === 10) &&
+          playerHands.some((e: any) => e.point === 1)
+        }
+      />
       <Canvas
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       >
@@ -367,6 +384,7 @@ export default function BlackJackGame() {
           alignItems: "center",
         }}
       >
+        {/* <BlackJackGlowText /> */}
         <View
           style={{
             zIndex: 10,
@@ -382,6 +400,7 @@ export default function BlackJackGame() {
               toX: number;
               toY: number;
               delay: number;
+              horizontalPlaced: boolean;
             }) => (
               <View key={card.key} style={{ zIndex: card.key * 100 }}>
                 <Ticket
@@ -393,6 +412,7 @@ export default function BlackJackGame() {
                   toX={card.toX}
                   toY={card.toY}
                   delay={card.delay}
+                  horizontalPlaced={card.horizontalPlaced}
                 />
               </View>
             )
